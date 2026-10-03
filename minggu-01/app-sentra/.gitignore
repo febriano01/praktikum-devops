@@ -4,3 +4,10 @@ app.log
 ringkasan-log.txt
 app.log
 ringkasan-log.txt
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+app.log
+ringkasan-log.txt
