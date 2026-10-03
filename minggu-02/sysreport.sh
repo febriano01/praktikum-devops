@@ -1,61 +1,60 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly SCRIPT_NAME="$(basename "$0")"
+SCRIPT_NAME="$(basename "$0")"
+readonly SCRIPT_NAME
 readonly VERSION="1.0.0"
 THRESHOLD_DISK=80
 FORMAT="text"
 
-log() { printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*" >&2; }
+log() { printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$1"; }
 die() { log "GALAT: $*"; exit 1; }
 
 usage() {
-  cat <<USAGE
+    cat <<USAGE
 $SCRIPT_NAME v$VERSION - laporan kesehatan sistem
 Penggunaan: $SCRIPT_NAME [OPSI]
-  -d N    Ambang peringatan pemakaian disk dalam persen (default: 80)
-  -j      Keluarkan hasil dalam format JSON
-  -h      Tampilkan bantuan ini
-Exit code: 0 = sehat, 2 = melewati ambang, 1 = galat penggunaan
+  -d N   Ambang peringatan pemakaian disk dalam persen (default: 80)
+  -j     Keluarkan hasil dalam format JSON
+  -h     Tampilkan bantuan ini
+Exit code: 0 = sehat, 2 = melewati ambang, 1 = galat
 USAGE
 }
 
-disk_usage_pct() { df -P / | awk 'NR==2 { gsub("%","",$5); print $5 }'; }
-mem_used_pct()   { free | awk '/^Mem:/ { printf "%.0f", $3/$2*100 }'; }
-proc_count()     { ps -e --no-headers | wc -l; }
+while getopts "d:jh" opt; do
+  case "$opt" in
+    d) THRESHOLD_DISK="$OPTARG" ;;
+    j) FORMAT="json" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 1 ;;
+  esac
+done
 
-main() {
-  while getopts ":d:jh" opt; do
-    case "$opt" in
-      d) THRESHOLD_DISK="$OPTARG" ;;
-      j) FORMAT="json" ;;
-      h) usage; exit 0 ;;
-      \?) usage >&2; die "opsi tidak dikenal: -$OPTARG" ;;
-      :)  die "opsi -$OPTARG membutuhkan argumen" ;;
-    esac
-  done
+DISK_USAGE=$(df -P / | awk 'NR==2 {print $5}' | tr -d '%')
 
-  [[ "$THRESHOLD_DISK" =~ ^[0-9]+$ ]] || die "ambang disk harus berupa angka"
+EXIT_CODE=0
+if [ "$DISK_USAGE" -gt "$THRESHOLD_DISK" ]; then
+    STATUS="PERINGATAN: Pemakaian disk melebihi ambang batas"
+    EXIT_CODE=2
+else
+    STATUS="SEHAT"
+fi
 
-  local disk mem procs status
-  disk="$(disk_usage_pct)"
-  mem="$(mem_used_pct)"
-  procs="$(proc_count)"
-  status="OK"
-  (( disk >= THRESHOLD_DISK )) && status="PERINGATAN"
-
-  if [[ "$FORMAT" == "json" ]]; then
-    printf '{"host":"%s","disk_pct":%s,"mem_pct":%s,"proc":%s,"status":"%s"}\n' \
-      "$(hostname)" "$disk" "$mem" "$procs" "$status"
-  else
-    printf '%-20s : %s\n'   'Host'             "$(hostname)"
-    printf '%-20s : %s%%\n' 'Pemakaian disk'   "$disk"
-    printf '%-20s : %s%%\n' 'Pemakaian memori' "$mem"
-    printf '%-20s : %s\n'   'Jumlah proses'    "$procs"
-    printf '%-20s : %s\n'   'Status'           "$status"
-  fi
-
-  [[ "$status" == "OK" ]] || return 2
+if [ "$FORMAT" = "json" ]; then
+    cat <<JSON
+{
+  "script": "$SCRIPT_NAME",
+  "version": "$VERSION",
+  "disk_usage_percent": $DISK_USAGE,
+  "threshold_disk": $THRESHOLD_DISK,
+  "status": "$STATUS",
+  "exit_code": $EXIT_CODE
 }
+JSON
+else
+    echo "=== LAPORAN KESEHATAN SISTEM ==="
+    echo "Disk Usage : ${DISK_USAGE}% (Threshold: ${THRESHOLD_DISK}%)"
+    echo "Status     : ${STATUS}"
+fi
 
-main "$@"
+exit $EXIT_CODE
