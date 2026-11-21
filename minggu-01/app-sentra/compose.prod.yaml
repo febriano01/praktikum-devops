@@ -1,0 +1,5 @@
+services:
+  app:
+    restart: always
+    environment:
+      BUILD_ID: production
