@@ -35,7 +35,7 @@ Repository ini menjadi dokumentasi proses belajar, latihan, eksperimen, dan hasi
 | [`minggu-01/`](./minggu-01/) | Dokumentasi praktikum minggu pertama, Introduction to DevOps                                      |
 | [`minggu-02/`](./minggu-02/) | Dokumentasi praktikum minggu kedua, Linux Foundation for DevOps                                      |
 | [`minggu-03/`](./minggu-03/) | Dokumentasi praktikum minggu ketiga, Version Control dengan Git |
-
+| ['minggu-06/'](.minggu-06/)  | Dokumentasi praktikum minggu keenam, Dockerizing Applications |
 ## 🎯 Tujuan Repository
 
 * Mendokumentasikan perkembangan pembelajaran secara konsisten.
